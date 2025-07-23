@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProNotes by Mahesh</title>
+    <style>
+        /* 1. THEMES & VARIABLES */
+        :root {
+            /* Light Theme */
+            --bg-color: #f4f6f8;
+            --surface-color: #ffffff;
+            --text-color: #1a1a1a;
+            --text-secondary-color: #555;
+            --accent-color: #007aff;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --modal-backdrop: rgba(0, 0, 0, 0.4);
+            --icon-color: #444;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Theme */
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-secondary-color: #aaa;
+            --accent-color: #0a84ff;
+            --border-color: #333;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+            --modal-backdrop: rgba(0, 0, 0, 0.6);
+            --icon-color: #ccc;
+        }
+
+        /* Color Palette for Notes */
+        .color-default { --note-color: #777; }
+        .color-red { --note-color: #ff453a; }
+        .color-orange { --note-color: #ff9f0a; }
+        .color-yellow { --note-color: #ffd60a; }
+        .color-green { --note-color: #30d158; }
+        .color-blue { --note-color: #0a84ff; }
+
+
+        /* 2. GENERAL STYLES & RESETS */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1rem;
+            padding-bottom: 100px; /* Space for FAB */
+        }
+        
+        button, input {
+            font-family: inherit;
+            color: inherit;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* 3. HEADER */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0 1.5rem 0;
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--surface-color);
+            box-shadow: 0 2px 5px var(--shadow-color);
+            color: var(--icon-color);
+        }
+        .icon-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .search-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            padding: 0.5rem 0;
+            background-color: var(--bg-color);
+            transform: translateY(-100%);
+            visibility: hidden;
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s;
+        }
+        .search-container.visible {
+            transform: translateY(0);
+            visibility: visible;
+            opacity: 1;
+        }
+        #search-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            font-size: 1rem;
+        }
+        
+        /* 4. SETTINGS MENU */
+        #settings-menu {
+            position: absolute;
+            top: 60px;
+            right: 16px;
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            z-index: 110;
+            overflow: hidden;
+            transform: scale(0.95);
+            opacity: 0;
+            visibility: hidden;
+            transform-origin: top right;
+            transition: transform 0.2s ease, opacity 0.2s ease, visibility 0.2s;
+        }
+        #settings-menu.visible {
+            transform: scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+        .settings-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .settings-item:hover {
+            background-color: var(--border-color);
+        }
+        .settings-item svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--text-secondary-color);
+        }
+
+        /* 5. NOTES GRID / LIST */
+        #notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        #notes-grid.list-view {
+            display: flex;
+            flex-direction: column;
+        }
+        #notes-grid.list-view .note-card {
+            max-width: 100%;
+        }
+
+        .note-card {
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px var(--shadow-color);
+            border-top: 4px solid var(--note-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+        }
+        .note-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+        
+        .note-pin {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            color: var(--accent-color);
+        }
+        .note-pin svg { width: 16px; height: 16px; fill: currentColor; }
+
+        .note-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+
+        .note-content-preview {
+            font-size: 0.9rem;
+            color: var(--text-secondary-color);
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical;
+        }
+        
+        .note-card.locked .note-content-preview {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 80px;
+            color: var(--text-secondary-color);
+        }
+        .note-card.locked .note-content-preview svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .note-meta {
+            margin-top: 12px;
+            font-size: 0.75rem;
+            color: var(--text-secondary-color);
+        }
+        
+        .note-tags {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .tag {
+            background-color: var(--border-color);
+            color: var(--text-secondary-color);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        /* 6. FAB (FLOATING ACTION BUTTON) */
+        #fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 122, 255, 0.4);
+            z-index: 101;
+        }
+        #fab svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        /* 7. MODALS */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--modal-backdrop);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--bg-color);
+            width: 100%;
+            height: 100%;
+            max-width: 600px;
+            max-height: 95vh;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 5px 20px var(--shadow-color);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.visible .modal-content {
+            transform: scale(1);
+        }
+
+        /* 7a. Edit/Add Modal */
+        #edit-modal .modal-header {
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        #edit-modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: transparent;
+            border: none;
+            width: 100%;
+            padding: 0.5rem 0;
+        }
+        #edit-modal-title:focus { outline: none; }
+
+        #edit-modal .modal-body {
+            flex-grow: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .editor-toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+            background-color: var(--surface-color);
+            border-radius: 8px;
+        }
+        .toolbar-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            color: var(--icon-color);
+        }
+        .toolbar-btn:hover { background-color: var(--border-color); }
+        .toolbar-btn.active {
+             background-color: var(--accent-color);
+             color: white;
+        }
+        .toolbar-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        #note-content-input {
+            flex-grow: 1;
+            font-size: 1rem;
+            line-height: 1.7;
+            padding: 8px;
+            border-radius: 8px;
+            background-color: var(--surface-color);
+        }
+        #note-content-input:focus { outline: none; }
+        
+        #note-tags-input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 1rem;
+            border-radius: 8px;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        .color-palette {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+            margin-left: 1rem;
+        }
+        .color-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            background-color: var(--note-color); 
+        }
+        .color-swatch.selected {
+            border-color: var(--accent-color);
+        }
+
+        .counts {
+            font-size: 0.8rem;
+            color: var(--text-secondary-color);
+            text-align: right;
+            margin-top: 8px;
+        }
+
+        #edit-modal .modal-footer {
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        #exit-confirm-modal .modal-content {
+            max-height: fit-content;
+            height: auto;
+            max-width: 90%;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .btn-save { background-color: var(--accent-color); color: white; }
+        .btn-delete { background-color: #ff3b30; color: white; }
+        .btn-secondary { background-color: var(--surface-color); color: var(--text-color); }
+
+        /* 7b. View Modal */
+        #view-modal .modal-content {
+            background-color: var(--surface-color);
+            max-height: 100%;
+            border-radius: 0;
+        }
+        
+        #view-modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+            background-color: var(--surface-color);
+        }
+
+        #view-modal .modal-body {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+        
+        #view-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        #view-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        #view-content ul, #view-content ol {
+            padding-left: 25px;
+        }
+
+        /* 8. UNDO TOAST */
+        #undo-toast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 999;
+            transition: bottom 0.4s ease;
+        }
+        #undo-toast.visible {
+            bottom: 30px;
+        }
+        #undo-btn {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        /* 9. ONBOARDING TUTORIAL */
+        .tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tutorial-popup {
+            background: var(--surface-color);
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 90%;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .tutorial-popup p { margin-bottom: 15px; }
+        .tutorial-highlight {
+            position: absolute;
+            border: 3px solid var(--accent-color);
+            border-radius: 8px;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.7);
+            pointer-events: none;
+            transition: all 0.4s ease-in-out;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <h1 class="header-title">ProNotes</h1>
+            <div class="header-actions">
+                <button class="icon-btn" id="search-btn" aria-label="Search Notes">
+                    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                </button>
+                <button class="icon-btn" id="toggle-view-btn" aria-label="Toggle View">
+                     <svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>
+                </button>
+                <button class="icon-btn" id="settings-btn" aria-label="Settings">
+                    <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                </button>
+            </div>
+            <div class="search-container" id="search-container">
+                <input type="text" id="search-input" placeholder="Search by title, content, or #tag">
+            </div>
+        </header>
+
+        <!-- Notes Grid -->
+        <main id="notes-grid"></main>
+
+        <!-- Settings Menu (Dropdown) -->
+        <div id="settings-menu">
+            <div class="settings-item" id="toggle-theme-btn">
+                <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+                <span>Toggle Theme</span>
+            </div>
+            <div class="settings-item" id="sort-btn">
+                <svg viewBox="0 0 24 24"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>
+                <span>Sort by: Date</span>
+            </div>
+            <div class="settings-item" id="set-password-btn">
+                <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg>
+                <span>Set Master Password</span>
+            </div>
+            <div class="settings-item" id="backup-btn">
+                <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+                <span>Backup Data</span>
+            </div>
+            <div class="settings-item" id="restore-btn">
+                 <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+                <span>Restore Data</span>
+                <input type="file" id="restore-input" accept=".json" style="display: none;">
+            </div>
+            <div class="settings-item" id="delete-all-btn">
+                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="#ff3b30"/></svg>
+                <span style="color: #ff3b30;">Delete All Notes</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button id="fab" aria-label="Create New Note">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    </button>
+    
+    <!-- Undo Toast -->
+    <div id="undo-toast">
+        <span>Action completed.</span>
+        <button id="undo-btn">Undo</button>
+    </div>
+
+    <!-- Modals -->
+    <!-- Edit/Add Modal -->
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <input type="text" id="edit-modal-title" placeholder="Note Title">
+                <div class="color-palette" id="color-palette">
+                    <div class="color-swatch color-default" data-color="default"></div>
+                    <div class="color-swatch color-red" data-color="red"></div>
+                    <div class="color-swatch color-orange" data-color="orange"></div>
+                    <div class="color-swatch color-yellow" data-color="yellow"></div>
+                    <div class="color-swatch color-green" data-color="green"></div>
+                    <div class="color-swatch color-blue" data-color="blue"></div>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="editor-toolbar">
+                    <button class="toolbar-btn" data-command="bold"><svg viewBox="0 0 24 24"><path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4.25-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg></button>
+                    <button class="toolbar-btn" data-command="italic"><svg viewBox="0 0 24 24"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg></button>
+                    <button class="toolbar-btn" data-command="underline"><svg viewBox="0 0 24 24"><path d="M12 17c3.31 0 6-2.69 6-6V3h-2.5v8c0 1.93-1.57 3.5-3.5 3.5S8.5 12.93 8.5 11V3H6v8c0 3.31 2.69 6 6 6zm-7 2v2h14v-2H5z"/></svg></button>
+                    <button class="toolbar-btn" data-command="insertUnorderedList"><svg viewBox="0 0 24 24"><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z"/></svg></button>
+                    <button class="toolbar-btn" data-command="insertOrderedList"><svg viewBox="0 0 24 24"><path d="M2 17h2v.5H3v1h1v.5H2v1h3v-4H2v1zm1-9h1V4H2v1h1v3zm-1 3h1.8L2 13.1v.9h3v-1H3.2L5 10.9V10H2v1zm5-6v2h14V5H7zm0 14h14v-2H7v2zm0-6h14v-2H7v2z"/></svg></button>
+                </div>
+                <div id="note-content-input" contenteditable="true" placeholder="Start writing..."></div>
+                <input type="text" id="note-tags-input" placeholder="Tags, comma-separated">
+                <div id="word-char-count" class="counts">0 words, 0 characters</div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn btn-delete" id="delete-note-btn">Delete</button>
+                <button class="action-btn btn-secondary" id="cancel-edit-btn">Cancel</button>
+                <button class="action-btn btn-save" id="save-note-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div class="modal" id="view-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="icon-btn" id="view-back-btn" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+                <div class="header-actions">
+                    <button class="icon-btn" id="view-share-btn" aria-label="Share"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3s3-1.34 3-3-1.34-3-3-3z"/></svg></button>
+                    <button class="icon-btn" id="view-copy-btn" aria-label="Copy"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+                    <button class="icon-btn" id="view-lock-btn" aria-label="Lock Note"><svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 8V6c0-1.65 1.35-3 3-3s3 1.35 3 3v2H9z"/></svg></button>
+                    <button class="icon-btn" id="view-pin-btn" aria-label="Pin Note"><svg viewBox="0 0 24 24"><path d="M16 9V4h1V2H7v2h1v5l-2 2v2h5.2v7l1.8-1.8 1.8 1.8v-7H18v-2l-2-2z"/></svg></button>
+                    <button class="icon-btn" id="view-edit-btn" aria-label="Edit Note"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <h2 id="view-title"></h2>
+                <div id="view-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ✅ NEW: Exit Confirmation Modal -->
+    <div class="modal" id="exit-confirm-modal">
+        <div class="modal-content">
+             <div class="modal-body" style="text-align: center; padding: 2rem;">
+                 <h3 style="margin-bottom: 0.5rem;">Exit ProNotes?</h3>
+                 <p style="color: var(--text-secondary-color); font-size: 0.95rem;">Are you sure you want to close the application?</p>
+             </div>
+             <div class="modal-footer" style="justify-content: center; gap: 1rem; border-top: none; padding-top: 0;">
+                <button class="action-btn btn-secondary" id="exit-cancel-btn">Cancel</button>
+                <button class="action-btn btn-delete" id="exit-confirm-btn">Yes, Exit</button>
+             </div>
+        </div>
+    </div>
+
+
+    <!-- Onboarding Tutorial -->
+    <div id="tutorial-container" style="display: none;"></div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. DOM ELEMENT REFERENCES
+        const DOMElements = {
+            notesGrid: document.getElementById('notes-grid'),
+            fab: document.getElementById('fab'),
+            editModal: document.getElementById('edit-modal'),
+            viewModal: document.getElementById('view-modal'),
+            exitConfirmModal: document.getElementById('exit-confirm-modal'),
+            editModalTitle: document.getElementById('edit-modal-title'),
+            noteContentInput: document.getElementById('note-content-input'),
+            noteTagsInput: document.getElementById('note-tags-input'),
+            saveNoteBtn: document.getElementById('save-note-btn'),
+            deleteNoteBtn: document.getElementById('delete-note-btn'),
+            cancelEditBtn: document.getElementById('cancel-edit-btn'),
+            colorPalette: document.getElementById('color-palette'),
+            viewTitle: document.getElementById('view-title'),
+            viewContent: document.getElementById('view-content'),
+            viewBackBtn: document.getElementById('view-back-btn'),
+            viewEditBtn: document.getElementById('view-edit-btn'),
+            viewLockBtn: document.getElementById('view-lock-btn'),
+            viewPinBtn: document.getElementById('view-pin-btn'),
+            viewShareBtn: document.getElementById('view-share-btn'),
+            viewCopyBtn: document.getElementById('view-copy-btn'),
+            searchBtn: document.getElementById('search-btn'),
+            searchInput: document.getElementById('search-input'),
+            searchContainer: document.getElementById('search-container'),
+            toggleViewBtn: document.getElementById('toggle-view-btn'),
+            settingsBtn: document.getElementById('settings-btn'),
+            settingsMenu: document.getElementById('settings-menu'),
+            toggleThemeBtn: document.getElementById('toggle-theme-btn'),
+            sortBtn: document.getElementById('sort-btn'),
+            setPasswordBtn: document.getElementById('set-password-btn'),
+            backupBtn: document.getElementById('backup-btn'),
+            restoreBtn: document.getElementById('restore-btn'),
+            restoreInput: document.getElementById('restore-input'),
+            deleteAllBtn: document.getElementById('delete-all-btn'),
+            undoToast: document.getElementById('undo-toast'),
+            undoBtn: document.getElementById('undo-btn'),
+            wordCharCount: document.getElementById('word-char-count'),
+            editorToolbar: document.querySelector('.editor-toolbar'),
+            tutorialContainer: document.getElementById('tutorial-container'),
+            exitCancelBtn: document.getElementById('exit-cancel-btn'),
+            exitConfirmBtn: document.getElementById('exit-confirm-btn'),
+        };
+
+        // 2. STATE MANAGEMENT
+        let state = {
+            notes: [],
+            settings: {
+                theme: 'dark',
+                view: 'grid',
+                sortBy: 'date', // 'date' or 'color'
+                masterPassword: null,
+            },
+            currentEditNoteId: null,
+            currentViewNoteId: null,
+            undoState: null,
+            searchQuery: ''
+        };
+
+        const DATA_KEY = 'proNotesData';
+
+        // 3. DATA PERSISTENCE (LocalStorage)
+        function saveData() {
+            localStorage.setItem(DATA_KEY, JSON.stringify({
+                notes: state.notes,
+                settings: state.settings
+            }));
+        }
+
+        function loadData() {
+            const data = localStorage.getItem(DATA_KEY);
+            if (data) {
+                const parsedData = JSON.parse(data);
+                state.notes = parsedData.notes || [];
+                state.settings = { ...state.settings, ...parsedData.settings };
+            }
+        }
+        
+        // 4. CORE UI RENDERING
+        function renderNotes() {
+            DOMElements.notesGrid.innerHTML = '';
+            DOMElements.notesGrid.className = state.settings.view === 'list' ? 'list-view' : '';
+
+            // Filter and Sort
+            let notesToRender = state.searchQuery ? searchNotes(state.searchQuery) : state.notes;
+            notesToRender = sortNotes(notesToRender);
+
+            if (notesToRender.length === 0) {
+                DOMElements.notesGrid.innerHTML = `<p style="color: var(--text-secondary-color); grid-column: 1 / -1; text-align: center;">No notes found. Create one with the '+' button!</p>`;
+                return;
+            }
+
+            notesToRender.forEach(note => {
+                const noteCard = document.createElement('div');
+                noteCard.className = `note-card color-${note.color}`;
+                noteCard.dataset.id = note.id;
+                
+                if (note.locked) {
+                    noteCard.classList.add('locked');
+                }
+
+                const tagsHTML = note.tags.map(tag => `<span class="tag">#${tag}</span>`).join('');
+
+                noteCard.innerHTML = `
+                    ${note.pinned ? `<div class="note-pin"><svg viewBox="0 0 24 24"><path d="M16 9V4h1V2H7v2h1v5l-2 2v2h5.2v7l1.8-1.8 1.8 1.8v-7H18v-2l-2-2z"/></svg></div>` : ''}
+                    <h3 class="note-title">${note.title || 'Untitled'}</h3>
+                    <div class="note-content-preview">
+                        ${note.locked ? '<svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0 2 .9 2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/></svg>' : note.content.replace(/<[^>]+>/g, '').substring(0, 150) + '...'}
+                    </div>
+                    <div class="note-tags">${tagsHTML}</div>
+                    <div class="note-meta">${formatTimestamp(note.edited)}</div>
+                `;
+                DOMElements.notesGrid.appendChild(noteCard);
+            });
+        }
+
+        // 5. MODAL MANAGEMENT
+        function openModal(modal, noteId = null) {
+            if (modal === DOMElements.editModal) {
+                resetEditModal();
+                state.currentEditNoteId = noteId;
+                if (noteId) {
+                    const note = state.notes.find(n => n.id === noteId);
+                    if (note) {
+                        DOMElements.editModalTitle.value = note.title;
+                        DOMElements.noteContentInput.innerHTML = note.content;
+                        DOMElements.noteTagsInput.value = note.tags.join(', ');
+                        selectColor(note.color);
+                        updateWordCharCount();
+                    }
+                }
+                DOMElements.deleteNoteBtn.style.display = noteId ? 'block' : 'none';
+            } else if (modal === DOMElements.viewModal) {
+                state.currentViewNoteId = noteId;
+                const note = state.notes.find(n => n.id === noteId);
+                if (note) {
+                    if (note.locked) {
+                        if (!checkPassword()) return;
+                    }
+                    DOMElements.viewTitle.textContent = note.title || 'Untitled';
+                    DOMElements.viewContent.innerHTML = note.content;
+
+                    // Update pin/lock button states
+                    const pinIcon = DOMElements.viewPinBtn.querySelector('svg');
+                    pinIcon.style.fill = note.pinned ? 'var(--accent-color)' : 'currentColor';
+                    const lockIcon = DOMElements.viewLockBtn.querySelector('svg');
+                    lockIcon.innerHTML = note.locked 
+                        ? '<path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/>' // Unlocked Path
+                        : '<path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 8V6c0-1.65 1.35-3 3-3s3 1.35 3 3v2H9z"/>'; // Locked Path
+                }
+            }
+            modal.classList.add('visible');
+        }
+
+        function closeModal(modal) {
+            modal.classList.remove('visible');
+            if (modal === DOMElements.editModal) {
+                state.currentEditNoteId = null;
+            } else if (modal === DOMElements.viewModal) {
+                state.currentViewNoteId = null;
+            }
+        }
+        
+        function resetEditModal() {
+            DOMElements.editModalTitle.value = '';
+            DOMElements.noteContentInput.innerHTML = '';
+            DOMElements.noteTagsInput.value = '';
+            selectColor('default');
+            updateWordCharCount();
+        }
+
+        // 6. CRUD & NOTE OPERATIONS
+        function saveNote() {
+            const title = DOMElements.editModalTitle.value.trim();
+            const content = DOMElements.noteContentInput.innerHTML;
+            const tags = DOMElements.noteTagsInput.value.split(',').map(tag => tag.trim()).filter(Boolean);
+            const color = DOMElements.colorPalette.querySelector('.selected').dataset.color;
+            const timestamp = Date.now();
+            
+            showUndoToast(true);
+
+            if (state.currentEditNoteId) {
+                // Update existing note
+                const noteIndex = state.notes.findIndex(n => n.id === state.currentEditNoteId);
+                if (noteIndex > -1) {
+                    state.notes[noteIndex] = {
+                        ...state.notes[noteIndex],
+                        title,
+                        content,
+                        tags,
+                        color,
+                        edited: timestamp
+                    };
+                }
+            } else {
+                // Create new note
+                const newNote = {
+                    id: 'note_' + timestamp + Math.random().toString(36).substr(2, 9),
+                    title,
+                    content,
+                    color,
+                    tags,
+                    pinned: false,
+                    locked: false,
+                    created: timestamp,
+                    edited: timestamp
+                };
+                state.notes.push(newNote);
+            }
+            
+            saveData();
+            renderNotes();
+            closeModal(DOMElements.editModal);
+        }
+        
+        function deleteNote(noteId) {
+            if (confirm('Are you sure you want to delete this note? This cannot be undone.')) {
+                showUndoToast(true);
+                state.notes = state.notes.filter(n => n.id !== noteId);
+                saveData();
+                renderNotes();
+                closeModal(DOMElements.editModal);
+                closeModal(DOMElements.viewModal);
+            }
+        }
+        
+        function togglePin(noteId) {
+            const noteIndex = state.notes.findIndex(n => n.id === noteId);
+            if (noteIndex > -1) {
+                showUndoToast(true);
+                state.notes[noteIndex].pinned = !state.notes[noteIndex].pinned;
+                saveData();
+                renderNotes();
+                openModal(DOMElements.viewModal, noteId); // Re-open to update UI
+            }
+        }
+        
+        function toggleLock(noteId) {
+            const noteIndex = state.notes.findIndex(n => n.id === noteId);
+            if (noteIndex > -1) {
+                if (!state.settings.masterPassword) {
+                    alert('Please set a master password in Settings first.');
+                    return;
+                }
+                
+                const note = state.notes[noteIndex];
+                if (note.locked) {
+                    // Unlock
+                    if (checkPassword()) {
+                        note.locked = false;
+                        alert('Note unlocked.');
+                    } else {
+                        return; // Don't proceed if password is wrong
+                    }
+                } else {
+                    // Lock
+                    note.locked = true;
+                    alert('Note locked.');
+                }
+                showUndoToast(true);
+                saveData();
+                renderNotes();
+                openModal(DOMElements.viewModal, noteId); // Re-open to update UI
+            }
+        }
+
+        // 7. FEATURE IMPLEMENTATIONS
+        function searchNotes(query) {
+            query = query.toLowerCase();
+            const isTagSearch = query.startsWith('#');
+            const tagQuery = isTagSearch ? query.substring(1) : '';
+
+            return state.notes.filter(note => {
+                if (note.locked) return false; // Ignore locked notes
+                
+                if (isTagSearch) {
+                    return note.tags.some(tag => tag.toLowerCase().includes(tagQuery));
+                }
+                
+                const titleMatch = note.title.toLowerCase().includes(query);
+                const contentMatch = note.content.replace(/<[^>]+>/g, '').toLowerCase().includes(query);
+                return titleMatch || contentMatch;
+            });
+        }
+        
+        function sortNotes(notesArray) {
+            return [...notesArray].sort((a, b) => {
+                // Pinned notes always come first
+                if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+
+                if (state.settings.sortBy === 'date') {
+                    return b.edited - a.edited;
+                } else if (state.settings.sortBy === 'color') {
+                    const colorOrder = ['red', 'orange', 'yellow', 'green', 'blue', 'default'];
+                    return colorOrder.indexOf(a.color) - colorOrder.indexOf(b.color);
+                }
+                return 0;
+            });
+        }
+        
+        function checkPassword() {
+            if (!state.settings.masterPassword) {
+                alert('No master password set.');
+                return false;
+            }
+            const input = prompt('Enter Master Password:');
+            // Note: In a real app, this should be a proper hash comparison.
+            if (input === state.settings.masterPassword) {
+                return true;
+            } else {
+                alert('Incorrect password.');
+                return false;
+            }
+        }
+        
+        function showUndoToast(captureState = false) {
+            if (captureState) {
+                state.undoState = JSON.parse(JSON.stringify(state.notes));
+            }
+            DOMElements.undoToast.classList.add('visible');
+            setTimeout(() => {
+                DOMElements.undoToast.classList.remove('visible');
+                state.undoState = null; // Clear undo state after timeout
+            }, 5000);
+        }
+        
+        // ✅ NEW: Handle Back Button Logic
+        function handleBackButton(event) {
+            if (DOMElements.exitConfirmModal.classList.contains('visible')) {
+                // Do nothing if the exit confirmation is already showing
+                return;
+            }
+
+            // Check for open modals/UI elements in a specific order of precedence
+            if (DOMElements.editModal.classList.contains('visible')) {
+                closeModal(DOMElements.editModal);
+            } else if (DOMElements.viewModal.classList.contains('visible')) {
+                closeModal(DOMElements.viewModal);
+            } else if (DOMElements.settingsMenu.classList.contains('visible')) {
+                DOMElements.settingsMenu.classList.remove('visible');
+            } else if (DOMElements.searchContainer.classList.contains('visible')) {
+                DOMElements.searchContainer.classList.remove('visible');
+            } else {
+                // If nothing is open, show the exit confirmation modal
+                DOMElements.exitConfirmModal.classList.add('visible');
+            }
+            
+            // Re-push a state to the history to "trap" the back button again
+            history.pushState(null, null, location.href);
+        }
+
+        // 8. EVENT LISTENERS
+        function setupEventListeners() {
+            // Header buttons
+            DOMElements.searchBtn.addEventListener('click', () => DOMElements.searchContainer.classList.toggle('visible'));
+            DOMElements.toggleViewBtn.addEventListener('click', () => {
+                state.settings.view = state.settings.view === 'grid' ? 'list' : 'grid';
+                saveData();
+                renderNotes();
+            });
+            DOMElements.settingsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                DOMElements.settingsMenu.classList.toggle('visible');
+            });
+            
+            // Search input
+            DOMElements.searchInput.addEventListener('keyup', (e) => {
+                state.searchQuery = e.target.value;
+                renderNotes();
+            });
+
+            // Note Grid (Event Delegation)
+            DOMElements.notesGrid.addEventListener('click', (e) => {
+                const card = e.target.closest('.note-card');
+                if (card) {
+                    openModal(DOMElements.viewModal, card.dataset.id);
+                }
+            });
+
+            // FAB
+            DOMElements.fab.addEventListener('click', () => openModal(DOMElements.editModal));
+
+            // Edit Modal
+            DOMElements.saveNoteBtn.addEventListener('click', saveNote);
+            DOMElements.deleteNoteBtn.addEventListener('click', () => deleteNote(state.currentEditNoteId));
+            DOMElements.cancelEditBtn.addEventListener('click', () => closeModal(DOMElements.editModal));
+            DOMElements.colorPalette.addEventListener('click', (e) => {
+                if (e.target.classList.contains('color-swatch')) {
+                    selectColor(e.target.dataset.color);
+                }
+            });
+            DOMElements.noteContentInput.addEventListener('input', updateWordCharCount);
+            
+            // Rich Text Editor Toolbar
+            DOMElements.editorToolbar.addEventListener('click', (e) => {
+                const btn = e.target.closest('.toolbar-btn');
+                if (btn) {
+                    const command = btn.dataset.command;
+                    document.execCommand(command, false, null);
+                    DOMElements.noteContentInput.focus();
+                }
+            });
+
+            // View Modal
+            DOMElements.viewBackBtn.addEventListener('click', () => closeModal(DOMElements.viewModal));
+            DOMElements.viewEditBtn.addEventListener('click', () => {
+                const noteIdToEdit = state.currentViewNoteId; // Capture ID before closing modal
+                closeModal(DOMElements.viewModal);
+                openModal(DOMElements.editModal, noteIdToEdit); // Use captured ID
+            });
+            DOMElements.viewPinBtn.addEventListener('click', () => togglePin(state.currentViewNoteId));
+            DOMElements.viewLockBtn.addEventListener('click', () => toggleLock(state.currentViewNoteId));
+            DOMElements.viewShareBtn.addEventListener('click', handleShare);
+            DOMElements.viewCopyBtn.addEventListener('click', handleCopy);
+
+
+            // Settings Menu
+            DOMElements.toggleThemeBtn.addEventListener('click', toggleTheme);
+            DOMElements.sortBtn.addEventListener('click', toggleSort);
+            DOMElements.setPasswordBtn.addEventListener('click', () => {
+                const pass = prompt('Enter new master password (leave blank to remove):');
+                if (pass !== null) {
+                    state.settings.masterPassword = pass.trim() || null;
+                    saveData();
+                    alert(pass ? 'Master password set.' : 'Master password removed.');
+                }
+            });
+            DOMElements.backupBtn.addEventListener('click', handleBackup);
+            DOMElements.restoreBtn.addEventListener('click', () => DOMElements.restoreInput.click());
+            DOMElements.restoreInput.addEventListener('change', handleRestore);
+            DOMElements.deleteAllBtn.addEventListener('click', () => {
+                if(confirm('ARE YOU ABSOLUTELY SURE? This will delete all notes and cannot be undone.')) {
+                    state.notes = [];
+                    saveData();
+                    renderNotes();
+                }
+            });
+            
+            // Exit Confirmation Modal Listeners
+            DOMElements.exitCancelBtn.addEventListener('click', () => closeModal(DOMElements.exitConfirmModal));
+            DOMElements.exitConfirmBtn.addEventListener('click', () => {
+                // This allows the actual "back" navigation to happen.
+                history.back();
+            });
+            
+
+            // Undo
+            DOMElements.undoBtn.addEventListener('click', () => {
+                if (state.undoState) {
+                    state.notes = JSON.parse(JSON.stringify(state.undoState));
+                    saveData();
+                    renderNotes();
+                    DOMElements.undoToast.classList.remove('visible');
+                    state.undoState = null;
+                }
+            });
+            
+            // Global click to close settings menu
+            document.addEventListener('click', (e) => {
+                if (!DOMElements.settingsMenu.contains(e.target) && !DOMElements.settingsBtn.contains(e.target)) {
+                    DOMElements.settingsMenu.classList.remove('visible');
+                }
+            });
+
+            // ✅ NEW: Listen for the back button press
+            window.addEventListener('popstate', handleBackButton);
+        }
+        
+        // 9. HELPER FUNCTIONS
+        function formatTimestamp(ts) {
+            const now = new Date();
+            const date = new Date(ts);
+            const diff = now.getTime() - date.getTime();
+            const diffSeconds = Math.floor(diff / 1000);
+            const diffMinutes = Math.floor(diffSeconds / 60);
+            const diffHours = Math.floor(diffMinutes / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffSeconds < 60) return "Edited just now";
+            if (diffMinutes < 60) return `Edited ${diffMinutes}m ago`;
+            if (diffHours < 24) return `Edited ${diffHours}h ago`;
+            if (diffDays < 7) return `Edited ${diffDays}d ago`;
+            return `Edited on ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        }
+        
+        function selectColor(color) {
+            DOMElements.colorPalette.querySelectorAll('.color-swatch').forEach(swatch => {
+                swatch.classList.toggle('selected', swatch.dataset.color === color);
+            });
+        }
+        
+        function updateWordCharCount() {
+            const text = DOMElements.noteContentInput.innerText;
+            const charCount = text.length;
+            const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+            DOMElements.wordCharCount.textContent = `${wordCount} words, ${charCount} characters`;
+        }
+
+        function toggleTheme() {
+            state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', state.settings.theme);
+            saveData();
+        }
+        
+        function toggleSort() {
+            state.settings.sortBy = state.settings.sortBy === 'date' ? 'color' : 'date';
+            DOMElements.sortBtn.querySelector('span').textContent = `Sort by: ${state.settings.sortBy === 'date' ? 'Date' : 'Color'}`;
+            saveData();
+            renderNotes();
+        }
+        
+        function handleShare() {
+            const note = state.notes.find(n => n.id === state.currentViewNoteId);
+            if (!note) return;
+            const textToShare = `*${note.title}*\n\n${note.content.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '')}`;
+            const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textToShare)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        function handleCopy() {
+            const note = state.notes.find(n => n.id === state.currentViewNoteId);
+            if (!note) return;
+            const textToCopy = `${note.title}\n\n${note.content.replace(/<br>/g, '\n').replace(/<[^>]+>/g, '')}`;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('Note content copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy content.');
+            });
+        }
+        
+        function handleBackup() {
+            const dataStr = JSON.stringify({ notes: state.notes, settings: state.settings });
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ProNotes_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function handleRestore(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!confirm("Restoring from a backup will overwrite all current notes and settings. Are you sure?")) {
+                DOMElements.restoreInput.value = ''; // Reset input
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const restoredData = JSON.parse(e.target.result);
+                    if (restoredData.notes && restoredData.settings) {
+                        state.notes = restoredData.notes;
+                        state.settings = { ...state.settings, ...restoredData.settings };
+                        saveData();
+                        applySettings();
+                        renderNotes();
+                        alert('Restore successful!');
+                    } else {
+                        alert('Invalid backup file format.');
+                    }
+                } catch (err) {
+                    alert('Error reading backup file.');
+                    console.error(err);
+                }
+                DOMElements.restoreInput.value = ''; // Reset input
+            };
+            reader.readAsText(file);
+        }
+
+        function applySettings() {
+            // Apply loaded settings to the UI
+            document.documentElement.setAttribute('data-theme', state.settings.theme);
+            DOMElements.notesGrid.className = state.settings.view === 'list' ? 'list-view' : '';
+            DOMElements.sortBtn.querySelector('span').textContent = `Sort by: ${state.settings.sortBy === 'date' ? 'Date' : 'Color'}`;
+        }
+        
+        // 10. ONBOARDING TUTORIAL
+        function runTutorial() {
+            const steps = [
+                {
+                    element: '#fab',
+                    text: "Welcome to ProNotes! Tap this '+' button to create your first note."
+                },
+                {
+                    element: '#search-btn',
+                    text: 'Use the search icon to find notes by title, content, or #tags.'
+                },
+                {
+                    element: '#toggle-view-btn',
+                    text: 'Toggle between grid and list views to suit your preference.'
+                },
+                {
+                    element: '#settings-btn',
+                    text: 'Access settings here for themes, sorting, backups, and more.'
+                },
+                 {
+                    element: `.note-card`,
+                    text: "Here's an example note. Tap it to view, edit, lock, or pin it. Enjoy ProNotes!"
+                }
+            ];
+
+            let currentStep = 0;
+
+            function showStep() {
+                if (currentStep >= steps.length) {
+                    cleanupTutorial();
+                    return;
+                }
+
+                const { element, text } = steps[currentStep];
+                const targetElement = document.querySelector(element);
+
+                // If the element for the last step (example note) doesn't exist, skip to end.
+                if (!targetElement) {
+                    cleanupTutorial();
+                    return;
+                }
+
+                const rect = targetElement.getBoundingClientRect();
+                DOMElements.tutorialContainer.innerHTML = `
+                    <div class="tutorial-overlay">
+                        <div class="tutorial-highlight" style="width:${rect.width+10}px; height:${rect.height+10}px; top:${rect.top-5}px; left:${rect.left-5}px;"></div>
+                        <div class="tutorial-popup">
+                            <p>${text}</p>
+                            <button class="action-btn btn-save" id="tutorial-next-btn">${currentStep === steps.length - 1 ? 'Finish' : 'Next'}</button>
+                        </div>
+                    </div>
+                `;
+                DOMElements.tutorialContainer.style.display = 'block';
+                document.getElementById('tutorial-next-btn').addEventListener('click', () => {
+                    currentStep++;
+                    showStep();
+                });
+            }
+
+            // Create an example note for the tutorial
+            const exampleNote = {
+                id: 'tutorial_note',
+                title: "Example Note",
+                content: "This is a sample note to get you started. You can <b>edit</b> or <i>delete</i> me.",
+                color: 'blue',
+                tags: ['welcome', 'tutorial'],
+                pinned: false,
+                locked: false,
+                created: Date.now(),
+                edited: Date.now()
+            };
+            state.notes.unshift(exampleNote);
+            renderNotes();
+
+            // Start the tutorial
+            setTimeout(showStep, 300); // Small delay to ensure rendering
+        }
+
+        function cleanupTutorial() {
+            DOMElements.tutorialContainer.style.display = 'none';
+            DOMElements.tutorialContainer.innerHTML = '';
+            // Remove the example note
+            state.notes = state.notes.filter(note => note.id !== 'tutorial_note');
+            localStorage.setItem('proNotesTutorialComplete', 'true');
+            saveData();
+            renderNotes();
+        }
+
+        // 11. INITIALIZATION
+        function init() {
+            loadData();
+            applySettings();
+            setupEventListeners();
+            renderNotes();
+
+            // Check if tutorial has been completed
+            if (!localStorage.getItem('proNotesTutorialComplete')) {
+                runTutorial();
+            }
+            
+            // ✅ NEW: Push an initial state to the history to enable back button interception.
+            history.pushState(null, null, location.href);
+        }
+        
+        init();
+    });
+    </script>
+
+</body>
+</html>
+<script type='text/javascript' src='//pl27211803.profitableratecpm.com/08/52/64/085264b91652efdbc1697d04178d1ede.js'></script>
